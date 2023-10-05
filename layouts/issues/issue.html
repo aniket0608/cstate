@@ -6,13 +6,11 @@
 {{ $isDown := where $active "Params.severity" "=" "down" }}
 
 <div class="article">
-  <h1 class="clean">
-    {{ .Title }}
-  </h1>
+  <h1 class="clean">{{ .Title }}</h1>
 
   <small class="date">
-    {{ if .Site.Params.dateFormat }}
-      {{ .Date.Format .Site.Params.dateFormat }}
+    {{ with .Site.Params.dateFormat }}
+      {{ .Date.Format . }}
     {{ else }}
       {{ .Date.Format "January 2, 2006 at 3:04 PM" }}
     {{ end }}
@@ -26,74 +24,46 @@
 
   {{ if .Params.informational }}
   {{ else if .Params.Resolved }}
-  {{ $t := (time .Params.ResolvedWhen) }}
-  {{ $timeDiff := (sub $t.Unix .Date.Unix) }}
-  {{ $diffInMin := (div $timeDiff 60) }}
+    {{ $t := (time .Params.ResolvedWhen) }}
+    {{ $timeDiff := (sub $t.Unix .Date.Unix) }}
+    {{ $diffInMin := (div $timeDiff 60) }}
 
-
-  <!-- Marker -->
-  {{ if lt $timeDiff 60 }}
-  <div class="faded">
-    <strong>
-    {{ T "resolved" }} {{ T "inUnderAMinute" }}.
-    </strong>
-  </div>
-  {{ else }}
-    {{ if gt $timeDiff 3600 }}
-      <div class="warning tooltip">
-        <strong>
-          {{ T "resolvedAfter" }}
-
-          {{ $minutesForCalc := (mod $diffInMin 60) }}
-
-          {{ div (sub $diffInMin $minutesForCalc) 60 }}h
-          {{ $minutesForCalc }}m
-          {{ if eq .Params.severity "down" }}
-              {{ T "ofDowntime" }}
-          {{ end }}
-        </strong>
-
-        <span class="tooltip__text">
-          {{ if .Site.Params.dateFormat }}
-            {{ dateFormat .Site.Params.dateFormat .Params.resolvedWhen }}
-          {{ else }}
-            {{ dateFormat "January 2, 2006 at 3:04 PM" .Params.resolvedWhen }}
-          {{ end }}
-        </span>
+    <!-- Marker -->
+    {{ if lt $timeDiff 60 }}
+      <div class="faded">
+        <strong>{{ T "resolved" }} {{ T "inUnderAMinute" }}.</strong>
       </div>
     {{ else }}
-      <div class="ok tooltip">
-        <strong>
-          {{ T "resolvedAfter" }}
-
-          {{ $secsForCalc := (mod $timeDiff 60) }}
-
-          {{ div (sub $timeDiff $secsForCalc) 60 }}m
-          {{ if eq .Params.severity "down" }}
-            {{ T "ofDowntime" }}
-          {{ end }}
+      <div class="{{ if gt $timeDiff 3600 }}warning{{ else }}ok{{ end }} tooltip">
+        <strong>{{ T "resolvedAfter" }}
+          {{ $hours := div $diffInMin 60 }}
+          {{ $minutes := mod $diffInMin 60 }}
+          {{ $severity := .Params.severity }}
+          
+          {{ if eq $hours 1 }}{{ T "hour" }}{{ else if gt $hours 1 }}{{ T "hours" }}{{ end }}
+          {{ if gt $hours 0 }}{{ if gt $minutes 0 }}, {{ end }}{{ end }}
+          {{ if gt $minutes 0 }}{{ if gt $hours 0 }}{{ T "and" }} {{ end }}{{ $minutes }} {{ T "minutes" }}{{ end }}
+          
+          {{ if eq $severity "down" }} {{ T "ofDowntime" }}{{ end }}
         </strong>
 
         <span class="tooltip__text">
-          {{ if .Site.Params.dateFormat }}
-            {{ dateFormat .Site.Params.dateFormat .Params.resolvedWhen }}
+          {{ with .Site.Params.dateFormat }}
+            {{ dateFormat . .Params.resolvedWhen }}
           {{ else }}
             {{ dateFormat "January 2, 2006 at 3:04 PM" .Params.resolvedWhen }}
           {{ end }}
         </span>
       </div>
     {{ end }}
-  {{ end }}
   {{ else }}
     <strong class="error">
-      {{ if eq .Params.severity "down" }}
-      ■ 
-      {{ else if eq .Params.severity "disrupted" }}
-      ▲ 
-      {{ else }}
-      ◆ 
+      {{ if eq .Params.severity "down" }}■ 
+      {{ else if eq .Params.severity "disrupted" }}▲ 
+      {{ else }}◆ 
       {{ end }}
-      {{ T "downtimeOngoing" }}</strong>
+      {{ T "downtimeOngoing" }}
+    </strong>
   {{ end }}
 
   <hr>
